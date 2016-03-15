@@ -1,0 +1,152 @@
+heat_template_version: 2014-10-16
+
+description: Template used to create admin nodes for HPCC
+
+parameters:
+  project:
+    label: Project Name
+    type: string
+    description: Name of the current project
+    constraints:
+      - allowed_pattern: "^[a-z]+(-[a-z]+)*$"
+        description: Project name must only contain lowercase letters and hyphens
+  lifecycle:
+    label: Lifecycle Name
+    type: string
+    description: The lifecycle of the admin nodes
+    constraints:
+      - allowed_values:
+        - dev
+        - qa
+        - ct
+        - prod
+        - dr
+        description: Lifecycle must be one of [ dev, qa, ct, prod, dr ]
+  environment:
+    label: Environment Name
+    type: string
+    description: Environment of the HPCC node(s)
+    constraints:
+      - allowed_pattern: "^thor[0-9]?[0-9]?|^roxie[0-9]?[0-9]?|^esp[0-9]?[0-9]?"
+        description: Environment name must be one of [ thor[0-99], roxie[0-99], esp[0-99] ]
+  instance_size:
+    type: string
+    label: Instance Size
+    description: The size of the admin nodes instances
+    constraints:
+      - allowed_values:
+        - h1.tiny
+        - m1.small
+        - h1.medium
+        - h1.large
+        - h1.xlarge
+        description: Instance size must be of type [ h1.tiny, h1.small, h1.medium, h1.large, h1.xlarge ]
+  instance_network:
+    type: string
+    label: Network Name
+    description: The name of the network to connect the admin nodes to
+    constraints:
+      - custom_constraint: neutron.network
+        description: Instance network must be a valid network name in this project
+  instance_image:
+    type: string
+    label: Instance Image
+    description: The name of the image the instance(s) use
+    constraints:
+      - allowed_values:
+        - hpcc-centos-7
+        - hpcc-ubuntu-14
+  instance_key:
+    type: string
+    description: The name of the ssh key pair, instance must be a valid nove keypair located in access and security in key pairs. sandbox-prod-eli-new-key
+    constraints:
+      - custom_constraint: nova.keypair        
+resources:
+  eclwatch_security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name:
+        str_replace:
+          params:
+            $project: { get_param: project }
+            $lifecycle: { get_param: lifecycle }
+            $environment: { get_param: environment }
+          template: |
+            $project-$lifecycle-$environment-eclwatch-sg
+      rules:
+        - protocol: tcp
+          port_range_min: 8010
+          port_range_max: 8010
+        - protocol: tcp
+          port_range_min: 8145
+          port_range_max: 8145
+  dali:
+    type: Lib::HPCC::Node
+    properties:
+      project: { get_param: project }
+      lifecycle: { get_param: lifecycle }
+      environment: { get_param: environment }
+      role: dali
+      instance_size: { get_param: instance_size }
+      instance_network: { get_param: instance_network }
+      instance_image: { get_param: instance_image }
+      key_name: { get_param: instance_key }
+  dali-backup:
+    type: Lib::HPCC::Node
+    properties:
+      project: { get_param: project }
+      lifecycle: { get_param: lifecycle }
+      environment: { get_param: environment }
+      role: dalibackup
+      instance_size: { get_param: instance_size }
+      instance_network: { get_param: instance_network }
+      instance_image: { get_param: instance_image }
+      key_name: { get_param: instance_key }
+  eclwatch:
+    type: Lib::HPCC::Node
+    properties:
+      project: { get_param: project }
+      lifecycle: { get_param: lifecycle }
+      environment: { get_param: environment }
+      role: eclwatch
+      instance_size: { get_param: instance_size }
+      instance_network: { get_param: instance_network }
+      instance_image: { get_param: instance_image }
+      instance_security_group: { get_resource: eclwatch_security_group }
+      key_name: { get_param: instance_key }
+  sasha:
+    type: Lib::HPCC::Node
+    properties:
+      project: { get_param: project }
+      lifecycle: { get_param: lifecycle }
+      environment: { get_param: environment }
+      role: sasha
+      instance_size: { get_param: instance_size }
+      instance_network: { get_param: instance_network }
+      instance_image: { get_param: instance_image }
+      key_name: { get_param: instance_key }
+  eclccserver:
+    type: Lib::HPCC::Node
+    properties:
+      project: { get_param: project }
+      lifecycle: { get_param: lifecycle }
+      environment: { get_param: environment }
+      role: eclserver
+      instance_size: { get_param: instance_size }
+      instance_network: { get_param: instance_network }
+      instance_image: { get_param: instance_image }
+      instance_security_group: { get_resource: eclwatch_security_group }
+      key_name: { get_param: instance_key }
+  dfuserver:
+    type: Lib::HPCC::Node
+    properties:
+      project: { get_param: project }
+      lifecycle: { get_param: lifecycle }
+      environment: { get_param: environment }
+      role: dfuserver
+      instance_size: { get_param: instance_size }
+      instance_network: { get_param: instance_network }
+      instance_image: { get_param: instance_image }
+      instance_security_group: { get_resource: eclwatch_security_group }
+      key_name: { get_param: instance_key }
+

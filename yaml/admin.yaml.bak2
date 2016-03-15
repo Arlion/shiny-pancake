@@ -1,0 +1,83 @@
+heat_template_version: 2014-10-16
+
+description: Template used to create admin nodes for HPCC
+
+parameters:
+  get_main_parameters:
+    type: Lib::HPCC::main
+    properties:
+      str_replace:
+        params:
+          $project: { get_param: project }
+          $lifecycle: { get_param: lifecycle }
+          $environment: { get_param: environment }
+          $eclwatch_security_group: { get_param: eclwatch_security_group}
+        template: 
+          $project-$lifecycle-$environment-eclwatch-sg
+dali:
+  type: Lib::HPCC::Node
+  properties:
+    project: { get_param: project }
+    lifecycle: { get_param: lifecycle }
+    environment: { get_param: environment }
+    role: dali
+    instance_size: { get_param: instance_size }
+    instance_network: { get_param: instance_network }
+    instance_image: { get_param: instance_image }
+dali-backup:
+  type: Lib::HPCC::Node
+  properties:
+    project: { get_param: project }
+    lifecycle: { get_param: lifecycle }
+    environment: { get_param: environment }
+    role: dali-backup
+    instance_size: { get_param: instance_size }
+    instance_network: { get_param: instance_network }
+    instance_image: { get_param: instance_image }
+eclwatch:
+  type: Lib::HPCC::Node
+  properties:
+    project: { get_param: project }
+    lifecycle: { get_param: lifecycle }
+    environment: { get_param: environment }
+    role: eclwatch
+    instance_size: { get_param: instance_size }
+    instance_network: { get_param: instance_network }
+    instance_image: { get_param: instance_image }
+    instance_security_group: { get_resource: eclwatch_security_group }
+sasha:
+  type: Lib::HPCC::Node
+  properties:
+    project: { get_param: project }
+    lifecycle: { get_param: lifecycle }
+    environment: { get_param: environment }
+    role: Sasha 
+    instance_size: { get_param: instance_size }
+    instance_network: { get_param: instance_network }
+    instance_image: { get_param: instance_image }
+    instance_security_group: { get_resource: eclwatch_security_group }
+eclccserver:
+  type: Lib::HPCC::Node
+  properties:
+    project: { get_param: project }
+    lifecycle: { get_param: lifecycle }
+    environment: { get_param: environment }
+    role: eclserver
+    instance_size: { get_param: instance_size }
+    instance_network: { get_param: instance_network }
+    instance_image: { get_param: instance_image }
+    instance_security_group: { get_resource: eclwatch_security_group }
+dfuserver:
+  type: Lib::HPCC::Node
+  properties:
+    project: { get_param: project }
+    lifecycle: { get_param: lifecycle }
+    environment: { get_param: environment }
+    role: dfuserver
+    instance_size: { get_param: instance_size }
+    instance_network: { get_param: instance_network }
+    instance_image: { get_param: instance_image }
+    instance_security_group: { get_resource: eclwatch_security_group }
+
+
+

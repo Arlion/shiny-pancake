@@ -1,0 +1,157 @@
+heat_template_version: 2014-10-16
+
+description: Core HPCC Server Template Library
+
+parameters:
+  project:
+    type: string
+    description: Name of the current project
+    constraints:
+      - allowed_pattern: "^[a-z]+(-[a-z]+)*$"
+        description: Project name must only contain lowercase letters and hyphens
+  lifecycle:
+    type: string
+    description: Lifecycle of the instance(s)
+    constraints:
+      - allowed_values:
+        - dev
+        - qa
+        - ct
+        - prod
+        - dr
+        description: Lifecycle must be one of [ dev, qa, ct, prod, dr ]
+  environment:
+    type: string
+    description: Environment of the HPCC node(s)
+    constraints:
+      - allowed_pattern: "^thor[0-9]?[0-9]?|^roxie[0-9]?[0-9]?|^esp[0-9]?[0-9]?"
+        description: Environment name must be one of [ thor[0-99], roxie[0-99], esp[0-99] ]
+  role:
+    type: string
+    description: The HPCC software role of the instance
+    constraints:
+      - allowed_values:
+        - dali
+        - dalibackup
+        - sasha
+        - eclcc
+        - eclserver
+        - eclagent
+        - eclwatch
+        - dfuserver
+        - landingzone
+        - thormaster
+        - thorslave
+        - roxie
+        - sasha
+        description: HPCC role must be one of values [ dali, dalibackup, sasha, eclcc, eclserver, eclagent, eclwatch, dfuserver, landingzone, thormaster, thorslave, roxie ]
+  instance_count:
+    type: number
+    description: The number of HPCC instances of this type
+    default: 1
+    constraints:
+      - range: { min: 1, max: 400 }
+        description: Number of instances must be in range of [1-400]
+  instance_size:
+    type: string
+    description: The size of the instance(s)
+    constraints:
+      - allowed_values:
+        - h1.tiny
+        - m1.small
+        - h1.medium
+        - h1.large
+        - h1.xlarge
+        description: Instance size must be of type [ h1.tiny, h1.small, h1.medium, h1.large, h1.xlarge ]
+  instance_network:
+    type: string
+    description: The network the instance(s) connect to
+    constraints:
+      - custom_constraint: neutron.network
+        description: Instance network must be a valid network name
+  instance_image:
+    type: string
+    description: The name of the image the instance(s) use
+    constraints:
+      - allowed_values:
+        - hpcc-centos-7
+        - hpcc-ubuntu-14
+  instance_key:
+    type: string
+    description: The name of the key pair to use for the instance(s)
+    constraints:
+      - custom_constraint: nova.keypair
+        description: Instance key must be a valid key pair name
+  
+
+  volume_count:
+    type: number
+    description: The number of attached disks
+    default: 1
+    constraints:
+      - range: { min: 1, max: 2 }
+        description: Number of attached disks must be in range [1-2]
+  volume_size:
+    type: number
+    description: The size of the attached disk(s)
+    default: 50
+    constraints:
+      - range: { min: 50, max: 2000 }
+        description: The size of the attached disks must be in range (50-2000) GB
+        
+resources:
+  eclwatch_security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name:
+        str_replace:
+          params:
+            $project: { get_param: project }
+            $lifecycle: { get_param: lifecycle }
+            $environment: { get_param: environment }
+          template: |
+            $project-$lifecycle-$environment-eclwatch-sg
+      rules:
+        - protocol: tcp
+          port_range_min: 8010
+          port_range_max: 8010
+        - protocol: tcp
+          port_range_min: 8145
+          port_range_max: 8145
+  hpcc_indexed_group:
+    type: OS::Heat::ResourceGroup
+    properties:
+      count: { get_param: instance_count }
+      resource_def:
+        type: Lib::Core::Server
+        properties:
+          name:
+            str_replace:
+              params:
+                $project: { get_param: project }
+                $lifecycle: { get_param: lifecycle }
+                $environment: { get_param: environment }
+                $role: { get_param: role }
+              template: |
+                $project-$lifecycle-$environment-$role-%index%
+          image: { get_param: instance_image }
+          #security_group: { get_param: instance_security_group }
+          flavor: { get_param: instance_size }
+          #instance_security_group: { get_resource: eclwatch_security_group }
+          #instance_security_group: { get_resource: eclwatch_security_group }
+          key_name: { get_param: instance_key }
+          network: { get_param: instance_network }
+          volume_count: { get_param: volume_count }
+          volume_size: { get_param: volume_size }
+          #user_data_format: RAW
+          user_data: |
+            #! /bin/bash -v
+            uname -a
+    
+    
+    
+    
+    
+  
+  
+    

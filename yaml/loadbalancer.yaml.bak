@@ -1,0 +1,118 @@
+heat_template_version: 2014-10-16
+
+description: Template used to create admin nodes for HPCC
+
+parameters:
+  project:
+    label: Project Name
+    type: string
+    description: Name of the current project
+    constraints:
+      - allowed_pattern: "^[a-z]+(-[a-z]+)*$"
+        description: Project name must only contain lowercase letters and hyphens
+  lifecycle:
+    label: Lifecycle Name
+    type: string
+    description: The lifecycle of the admin nodes
+    constraints:
+      - allowed_values:
+        - dev
+        - qa
+        - ct
+        - prod
+        - dr
+        description: Lifecycle must be one of [ dev, qa, ct, prod, dr ]
+  environment:
+    label: Environment Name
+    type: string
+    description: Environment of the HPCC node(s)
+    constraints:
+      - allowed_pattern: "^thor[0-9]?[0-9]?|^roxie[0-9]?[0-9]?|^esp[0-9]?[0-9]?"
+        description: Environment name must be one of [ thor[0-99], roxie[0-99], esp[0-99] ]
+  instance_size:
+    type: string
+    label: Instance Size
+    description: The size of the admin nodes instances
+    constraints:
+      - allowed_values:
+        - h1.tiny
+        - m1.small
+        - h1.medium
+        - h1.large
+        - h1.xlarge
+        description: Instance size must be of type [ h1.tiny, h1.small, h1.medium, h1.large, h1.xlarge ]
+  instance_network:
+    type: string
+    label: Network Name
+    description: The name of the network to connect the admin nodes to
+    constraints:
+      - custom_constraint: neutron.network
+        description: Instance network must be a valid network name in this project
+  instance_image:
+    type: string
+    label: Instance Image
+    description: The name of the image the instance(s) use
+    constraints:
+      - allowed_values:
+        - hpcc-centos-7
+        - hpcc-ubuntu-14
+  instance_count:
+    type: number
+    description: The number of Roxie instances of this type
+    default: 1
+    constraints:
+      - range: { min: 1, max: 400 }
+        description: Number of Roxies in a cluster must be in range of [1-400]
+  pool_id:
+    type: number
+    description: Which Pool ID do you want to assign this Roxie to? If this is your first, or only, cluster; Select "1"
+    constraints:
+      - range: { min: 1, max: 4 }
+        description: Roxie pool must be in range [1-4]
+  service_port:
+    type: string
+    description: Which port do you want the load balancer to monitor? (TCP ONLY)
+   
+resources:
+  eclwatch_security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name:
+        str_replace:
+          params:
+            $project: { get_param: project }
+            $lifecycle: { get_param: lifecycle }
+            $environment: { get_param: environment }
+          template: |
+            $project-$lifecycle-$environment-eclwatch-sg
+      rules:
+        - protocol: tcp
+          port_range_min: 8010
+          port_range_max: 8010
+        - protocol: tcp
+          port_range_min: 8145
+          port_range_max: 8145
+  monitor:
+    type: OS::Neutron::HealthMonitor
+    properties:
+      type: TCP
+      delay: 5
+      max_retries: 5
+      timeout: 5
+  pool:
+    type: OS::Neutron::Pool
+    properties:
+      protocol: TCP 
+      monitors: [{get_resource: monitor}]
+      lb_method: ROUND_ROBIN
+      vip:
+        protocol_port: { get_param: service_port }
+  lb:
+    type: OS::Neutron::LoadBalancer
+    properties:
+      protocol_port: { get_param: service_port }
+      pool_id: {get_resource: pool}
+
+
+
+

@@ -1,0 +1,40 @@
+heat_template_version: 2014-10-16
+
+description: Template used to create admin nodes for HPCC
+
+parameters:
+  pool_id:
+    type: number
+    description: Which Pool ID do you want to assign this Roxie to? If this is your first, or only, cluster; Select "1"
+    constraints:
+      - range: { min: 1, max: 4 }
+        description: Roxie pool must be in range [1-4]
+  port_number:
+    type: string
+    description: Which port do you want the load balancer to monitor? (TCP ONLY)
+   
+resources:
+  monitor:
+    type: OS::Neutron::HealthMonitor
+    properties:
+      type: TCP
+      delay: 5
+      max_retries: 5
+      timeout: 5
+  pool:
+    type: OS::Neutron::Pool
+    properties:
+      protocol: TCP 
+      monitors: [{get_resource: monitor}]
+      lb_method: ROUND_ROBIN
+      vip:
+        protocol_port: { get_param: port_number }
+  lb:
+    type: OS::Neutron::LoadBalancer
+    properties:
+      service_port: { get_param: port_number }
+      pool_id: {get_param: pool_id}
+
+
+
+

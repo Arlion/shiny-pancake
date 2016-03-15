@@ -1,0 +1,81 @@
+heat_template_version: 2014-10-16
+
+parameters:
+  name:
+    type: string
+    description: The name of the instance
+  image:
+    type: string
+    description: The name of the image
+    constraints:
+      - custom_constraint: glance.image
+        description: Instance image must be a valid image
+  flavor:
+    type: string
+    description: The flavor type of the instance
+    constraints:
+      - custom_constraint: nova.flavor
+        description: Instance flavor must be a valid nova flavor name
+  instance_key:
+    type: string
+    description: The name of the ssh key pair
+    constraints:
+      - custom_constraint: nova.keypair
+        description: Instance key must be a valid nova keypair name
+  network:
+    type: string
+    description: The name of the network
+    constraints:
+      - custom_constraint: neutron.network
+        description: Network name must be a valid neutron network
+  volume_count:
+    type: number
+    description: The number of attached volumes
+    default: 1
+    constraints:
+      - range: { min: 1, max: 5 }
+        description: Number of attached volumes must be in range [1-5]
+  volume_size:
+    type: number
+    description: The size in GB of the attached volumes
+    default: 20
+    constraints:
+      - range: { min: 1, max: 10000 }
+        description: Volume size in GB must be between [1-10000]
+  security_group:
+    type: string
+    description: The security group of the instance
+    default: default 
+  user_data:
+    type: string
+    description: The user_data to be passed to the instance
+
+resources:
+  instance:
+    type: OS::Nova::Server
+    properties:
+      name: { get_param: name }
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      networks:
+        - network: { get_param: network }
+      security_groups: 
+        - { get_param: security_group }
+      key_name: { get_param: instance_key }
+      user_data: { get_param: user_data }
+  group_of_volumes:
+    type: OS::Heat::ResourceGroup
+    properties:
+      count: { get_param: volume_count }
+      index_var: disk_index
+      resource_def:
+        type: Lib::Core::Volume
+        properties:
+          instance_id: {get_resource: instance}
+          volume_size: { get_param: volume_size }
+          volume_name:
+            str_replace:
+              params:
+                $name: { get_param: name }
+              template: |
+                $name-disk-disk_index

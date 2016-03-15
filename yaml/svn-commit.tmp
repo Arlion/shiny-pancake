@@ -1,0 +1,8 @@
+Modified env for new yaml files to build in new thor and roxie scripts. Added thor script. added roxie scripts. Added beginnings of load balencings in the roxie script. Super beta script. admin file now has sasha and ecl server sections for new instances. 
+-- line, and those below, will be ignored--
+
+A  + admin.yaml
+M    env.yaml
+A    roxie.yaml
+D    thor-admin.yaml
+A    thor.yaml
