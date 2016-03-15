@@ -1,6 +1,8 @@
 #!/bin/bash
 
-prompt -p "IP? " ip
-prompt -p "Username? " username
+read -p "IP? " ip
+read -p "Username? " username
 
-for x in {1..100}; do ssh $username@$ip ; sleep 5; done
+
+ssh -o connectionattempts=1000 $username@$ip
+
