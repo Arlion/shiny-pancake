@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 
 inputfile=input.txt
 
@@ -6,12 +6,11 @@ totalcount=$(sort -d $inputfile | uniq -c | awk '{ print $1}')
 inputcount=$(sort -d $inputfile | uniq -c | awk '{ print $2}')
 totalarray=($totalcount)
 inputarray=($inputcount)
-echo ${totalarray[*]}
-echo ${inputarray[*]}
 
+tLen=${#totalarray[@]}
 
-for x in ${totalarray[@]} ; do
-	echo "${totalarray[$x]} - ${inputarray[$x]}"
+for (( i=0; i<${tLen}; i++ )); do
+	echo "${totalarray[$i]}" = "${inputarray[$i]}"
 done
 
 
