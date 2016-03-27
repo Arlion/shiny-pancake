@@ -1,7 +1,6 @@
 #!/bin/bash
 
 
-count=1
 function reversetest {
 	if [[ $count -eq 30 ]] ; then echo "lychrel number could not be reached"; continue ; fi
 
